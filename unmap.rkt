@@ -81,7 +81,7 @@
 (define (conv-file in-file out-file)
   (define fstr (with-input-from-file in-file port->string))
   (with-output-to-file out-file (process-string fstr default-ops) #:mode 'text))
-  
+
 (define (string->latex-string str ophash)
   (set! debug-prev-output (current-output-port))
   (with-output-to-string (process-string str ophash)))

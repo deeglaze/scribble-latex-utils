@@ -88,7 +88,7 @@
                 #:escapeinside [escapeinside #f]
                 #:morekeywords [morekeywords #f]
                 #:moredelim [moredelim #f])
-  (define key-values 
+  (define key-values
     `(;; styling
       ("basicstyle" . ,basicstyle)
       ("keywordstyle" . ,keywordstyle)
@@ -124,7 +124,7 @@
       ("morekeywords" . ,morekeywords)
       ("moredelim" . ,moredelim)))
   (make-element (make-style "lstset" '(exact-chars))
-                (string-join 
+                (string-join
                  (foldr (λ (pair acc)
                            (match-define (cons key val) pair)
                            (cond [val
