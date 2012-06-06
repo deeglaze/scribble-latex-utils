@@ -30,6 +30,9 @@
   (cond [(math-mode) (unmath (exact "\\mbox{" items ... "}"))]
         [else (exact items ...)]))
 
+(define (renewcommand item0 item1)
+  (make-multiarg-element (make-style "renewcommand" '(exact-chars)) (list item0 item1)))
+
 (define bg-color-style
   (make-style "BgColor" (list (make-tex-addition "bgcolor.tex"))))
 (define (graybox elm) (make-element bg-color-style elm))
@@ -51,9 +54,19 @@
 (define (tenv t title items)
   (keyword-apply env '() '() t items #:opt (list (bracket title))))
 
+(define-syntax-rule (mathpar items ...)
+  (list (make-element (make-style "setbox\\mymathpar=\\vbox" '(exact-chars))
+                      (list "\n"
+                            "\\begin{mathpar}"
+                            (parameterize ([math-mode #t])
+                              (map content->latex-content (list items ...)))
+                            "\n\\end{mathpar}\n"))
+        (make-element (make-style "box\\mymathpar" '(exact-chars)) "")))
+
 (define (lstlisting #:math-escape? [math-escape? #f] . items)
   (list (make-element (make-style "setbox\\mylistings=\\vbox" '(exact-chars))
-                      (list "\n\\begin{lstlisting}"
+                      (list "\n"
+                            "\\begin{lstlisting}"
                             (cond [math-escape? "[mathescape]\n"]
                                   [else "\n"])
                             (parameterize ([math-mode #t])
@@ -70,6 +83,7 @@
                 #:showstringspaces [showstringspaces #f]
                 #:numbers [numbers #f]
                 #:numberstyle [numberstyle #f]
+                #:numberblanklines [numberblanklines #f]
                 #:stepnumber [stepnumber #f]
                 #:numbersep [numbersep #f]
                 #:backgroundcolor [backgroundcolor #f]
@@ -87,8 +101,10 @@
                 #:title [title #f]
                 #:escapeinside [escapeinside #f]
                 #:morekeywords [morekeywords #f]
-                #:moredelim [moredelim #f])
-  (define key-values
+                #:moredelim [moredelim #f]
+                #:xleftmargin [xleftmargin #f]
+                #:xrightmargin [xrightmargin #f])
+  (define key-values 
     `(;; styling
       ("basicstyle" . ,basicstyle)
       ("keywordstyle" . ,keywordstyle)
@@ -98,6 +114,7 @@
       ;; line numbering
       ("numbers" . ,numbers)
       ("numberstyle" . ,numberstyle)
+      ("numberblanklines" . ,numberblanklines)
       ("stepnumber" . ,stepnumber)
       ("numbersep" . ,numbersep)
       ;; display
@@ -109,6 +126,9 @@
       ("showspaces" . ,showspaces)
       ("showtabs" . ,showtabs)
       ("tabsize" . ,tabsize)
+      ;; margins
+      ("xleftmargin" . ,xleftmargin)
+      ("xrightmargin" . ,xrightmargin)
       ;; line breaking
       ("breaklines" . ,breaklines)
       ("breakatwhitespace" . ,breakatwhitespace)
@@ -124,7 +144,7 @@
       ("morekeywords" . ,morekeywords)
       ("moredelim" . ,moredelim)))
   (make-element (make-style "lstset" '(exact-chars))
-                (string-join
+                (string-join 
                  (foldr (λ (pair acc)
                            (match-define (cons key val) pair)
                            (cond [val
@@ -172,8 +192,12 @@
   (parblock "lemma" title tag items))
 (define (parthm title #:tag [tag #f] . items)
   (parblock "theorem" title tag items))
+(define (parunthm title #:tag [tag #f] . items)
+  (parblock "untheorem" title tag items))
 (define (parprf #:tag [tag #f] . items)
   (parblock "proof" #f tag items))
+(define (parprop title #:tag [tag #f] . items)
+  (parblock "property" title tag items))
 (define (ntthm . items) (apply env "theorem" items))
 (define (ntlem . items) (apply env "lemma" items))
 (define (ntprf . items) (apply env "proof" items))
