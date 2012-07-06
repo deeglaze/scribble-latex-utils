@@ -1,10 +1,19 @@
 #lang racket/base
 
 (require racket/port scribble/core racket/match racket/contract)
+
+(provide overload-op* math-mode in-math unmath
+         translate-char default-ops
+         operators/c operator/c conv-file)
+
+(define operator/c
+  (->* (char? string? exact-nonnegative-integer?)
+       (values string? exact-nonnegative-integer?)))
+(define operators/c (hash/c char? operator/c))
+
 (provide/contract
 [content->latex-content
- (->* (content?) (#:operators any/c) content?)])
-(provide overload-op* math-mode in-math unmath conv-file)
+ (->* (content?) (#:operators operators/c) content?)])
 
 (define math-mode (make-parameter #f))
 (define unsafe-math-mode (make-parameter #f))
@@ -247,6 +256,7 @@
            [(#\Θ) (mathify "\\Theta")]
            [(#\Π) (mathify "\\Pi")]
            [(#\Φ) (mathify "\\Phi")]
+           [(#\æ) (mathify "\\ae")]
            [(#\±) (mathify "\\pm")]
            [(#\∩) (mathify "\\cap")]
            [(#\◇) (mathify "\\diamond")]

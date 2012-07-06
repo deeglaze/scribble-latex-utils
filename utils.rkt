@@ -13,12 +13,31 @@
                   make-blockquote make-styled-paragraph)
          (for-label racket))
 
-(provide (all-defined-out))
+(provide exact m mp um renewcommand
+         graybox ; really specific
+         env bracket curlies parens
+         tenv
+         align* envalign*
+         ;; amsthm
+         mdef mthm mlem mprop mnotation mcor
+         parthm parunthm parlem parprop parprf
+         tprf
+         ntthm ntlem ntprf
+         ;; mathpartir
+         mathpar
+         ;; listings
+         lstlisting
+         lstset
+         ;; pfsteps
+         byCases bc-case bc-otherwise pfsteps*)
 
 (define exact-style (make-style "identity" '(exact-chars)))
 
-(define (exact . items)
-  (make-element exact-style (map content->latex-content items)))
+(define (exact #:operators [operators default-ops] . items)
+  (make-element exact-style 
+                (map (λ (i) 
+                        (content->latex-content i #:operators operators))
+                     items)))
 
 (define-syntax-rule (m items ...)
   (cond [(math-mode) (exact items ...)]
@@ -32,6 +51,10 @@
 
 (define (renewcommand item0 item1)
   (make-multiarg-element (make-style "renewcommand" '(exact-chars)) (list item0 item1)))
+
+(define (tagit tag . items)
+  (cond [tag (cons (exact `("\\label{" ,tag "}")) items)]
+        [else items]))
 
 (define bg-color-style
   (make-style "BgColor" (list (make-tex-addition "bgcolor.tex"))))
@@ -165,45 +188,51 @@
 (define (bc-otherwise . items)
   (apply exact `("\\otherwise{}" ,@items)))
 
-(define (tagit tag . items)
-  (cond [tag (cons (exact `("\\label{" ,tag "}")) items)]
-        [else items]))
-
 (define (parblock env title tag items)
+  (define par
+    (make-paragraph exact-style
+                    (exact `("\\begin{" ,env "}"
+                             ,@(if title
+                                   `("[" ,title "]")
+                                   '())))))
+  (define blocks
+    (map content->block (collapse-content (apply tagit tag items))))
+  (define end
+    (make-paragraph exact-style (exact `("\\end{" ,env "}"))))
   (make-compound-paragraph exact-style
-                           (append (list (make-paragraph exact-style
-                                                         (exact `("\\begin{" ,env "}"
-                                                                  ,@(if title
-                                                                        `("[" ,title "]")
-                                                                        '())))))
-                                   (map content->block (collapse-content (apply tagit tag items)))
-                                   (list (make-paragraph exact-style (exact `("\\end{" ,env "}")))))))
+                           (append (list par) blocks (list end))))
 
 (define (mdef title #:tag [tag #f] . items)
   (tenv "definition" title (apply tagit tag items)))
-(define (mthm title #:tag [tag #f] . items) (tenv "theorem" title (apply tagit tag items)))
-(define (unthm title #:tag [tag #f] . items) (tenv "untheorem" title (apply tagit tag items)))
-
+(define (mthm title #:tag [tag #f] . items) 
+  (tenv "theorem" title (apply tagit tag items)))
 (define (mlem title #:tag [tag #f] . items)
   (tenv "lemma" title (apply tagit tag items)))
 (define (mprop title #:tag [tag #f] . items)
   (tenv "property" title (apply tagit tag items)))
-(define (parlem title #:tag [tag #f] . items)
-  (parblock "lemma" title tag items))
+(define (mcor title  #:tag [tag #f]. items) 
+  (tenv "corollary" title (apply tagit tag items)))
+(define (mnotation title #:tag [tag #f] . items) 
+  (tenv "notation" title (apply tagit tag items)))
+(define (unthm title #:tag [tag #f] . items) 
+  (tenv "untheorem" title (apply tagit tag items)))
+
+(define (tprf title . items) (tenv "proof" title items))
+
 (define (parthm title #:tag [tag #f] . items)
   (parblock "theorem" title tag items))
+(define (parlem title #:tag [tag #f] . items)
+  (parblock "lemma" title tag items))
 (define (parunthm title #:tag [tag #f] . items)
   (parblock "untheorem" title tag items))
 (define (parprf #:tag [tag #f] . items)
   (parblock "proof" #f tag items))
 (define (parprop title #:tag [tag #f] . items)
   (parblock "property" title tag items))
+
 (define (ntthm . items) (apply env "theorem" items))
 (define (ntlem . items) (apply env "lemma" items))
 (define (ntprf . items) (apply env "proof" items))
-(define (tprf title . items) (tenv "proof" title items))
-(define (mcor title . items) (tenv "corollary" title items))
-(define (mnotation title . items) (tenv "notation" title items))
 ;; align* is a special LaTeX environment that puts its body directly in a math mode context.
 (define-syntax-rule (envalign* items ...)
   (in-math (env "align*" items ...)))
