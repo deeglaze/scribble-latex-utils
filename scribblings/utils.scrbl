@@ -105,7 +105,7 @@ Like @racket[m], only uses @tt{\[...\]} instead of @tt{$...$}.}
 Wrapper for LaTeX's @tt{\renewcommand}.}
 
 @deftogether[(
-@defstruct[brackets ([element content?])]
+@defstruct[bracket ([element content?])]
 @defstruct[curlies ([element content?])]
 @defstruct[parens ([element content?])])]{
 Structures that are intepreted by @racket[env] to wrap the given element in

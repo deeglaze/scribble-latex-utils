@@ -13,11 +13,12 @@
                   make-blockquote make-styled-paragraph)
          (for-label racket))
 
-(provide exact m mp um renewcommand
+(provide m mp um renewcommand
          graybox ; really specific
-         env bracket curlies parens
+         bracket curlies parens
          tenv
          align* envalign*
+         array style-matrix matrix
          ;; amsthm
          mdef mthm mlem mprop mnotation mcor
          parthm parunthm parlem parprop parprf
@@ -31,10 +32,34 @@
          ;; pfsteps
          byCases bc-case bc-otherwise pfsteps*)
 
-(define exact-style (make-style "identity" '(exact-chars)))
+(struct bracket (element))
+(struct curlies (element))
+(struct parens (element))
+
+(provide/contract
+ [exact (->* () (#:operators operators/c) #:rest (listof content?) content?)]
+ [env (->* (content?) (#:opt (listof (or/c bracket? curlies? parens?)))
+           #:rest (listof content?) content?)])
+;; FIXME: Make this path robust.
+(define abs
+  (lambda (s)
+    (build-path "/home/ianj/projects/paper-utils/" s)))
+
+(define exact-style 
+  (make-style "Iidentity" `(exact-chars #;,(make-tex-addition (abs "identity.tex"))
+                            )))
+(define current-style (make-parameter exact-style))
+
+(define amsthm-style
+  (make-style "Iidentity" `(exact-chars #;,(make-tex-addition (abs "amsthm.tex"))
+                            )))
+(define listings-addition (make-tex-addition (abs "listings.tex")))
+(define pfsteps-style
+  (make-style "Iidentity" `(exact-chars #;,(make-tex-addition (abs "pfsteps.tex"))
+                            )))
 
 (define (exact #:operators [operators default-ops] . items)
-  (make-element exact-style 
+  (make-element (current-style)
                 (map (λ (i) 
                         (content->latex-content i #:operators operators))
                      items)))
@@ -60,9 +85,6 @@
   (make-style "BgColor" (list (make-tex-addition "bgcolor.tex"))))
 (define (graybox elm) (make-element bg-color-style elm))
 
-(struct bracket (element))
-(struct curlies (element))
-(struct parens (element))
 (define (interpret-option option)
   (match option
     [(bracket e) `("[" ,e "]")]
@@ -78,7 +100,9 @@
   (keyword-apply env '() '() t items #:opt (list (bracket title))))
 
 (define-syntax-rule (mathpar items ...)
-  (list (make-element (make-style "setbox\\mymathpar=\\vbox" '(exact-chars))
+  (list (make-element (make-style "setbox\\mymathpar=\\vbox" 
+                                  `(exact-chars #;,(make-tex-addition (abs "mathpar.tex"))
+                                    ))
                       (list "\n"
                             "\\begin{mathpar}"
                             (parameterize ([math-mode #t])
@@ -87,7 +111,8 @@
         (make-element (make-style "box\\mymathpar" '(exact-chars)) "")))
 
 (define (lstlisting #:math-escape? [math-escape? #f] . items)
-  (list (make-element (make-style "setbox\\mylistings=\\vbox" '(exact-chars))
+  (list (make-element (make-style "setbox\\mylistings=\\vbox" 
+                                  `(exact-chars ,listings-addition))
                       (list "\n"
                             "\\begin{lstlisting}"
                             (cond [math-escape? "[mathescape]\n"]
@@ -166,7 +191,7 @@
       ("escapeinside" . ,escapeinside)
       ("morekeywords" . ,morekeywords)
       ("moredelim" . ,moredelim)))
-  (make-element (make-style "lstset" '(exact-chars))
+  (make-element (make-style "lstset" `(exact-chars ,listings-addition))
                 (string-join 
                  (foldr (λ (pair acc)
                            (match-define (cons key val) pair)
@@ -180,17 +205,22 @@
 (define (array style . items)
   (keyword-apply env '() '() "array" items #:opt (list (curlies style))))
 
+(define-syntax-rule (in-style style body1 body ...)
+  (parameterize ([current-style style]) body1 body ...))
+
 ;; For working with Jesse's pfsteps library
-(define (byCases . items) (apply env "byCases" items))
-(define (pfsteps* . items) (apply env "pfsteps*" items))
+(define-syntax-rule (byCases items ...)
+  (in-style pfsteps-style (env "byCases" items ...)))
+(define-syntax-rule (pfsteps* items ...) 
+  (in-style pfsteps-style (env "pfsteps*" items ...)))
 (define-syntax-rule (bc-case title items ...)
-  (exact "\\case{" (in-math (um title)) "}" items ...))
-(define (bc-otherwise . items)
-  (apply exact `("\\otherwise{}" ,@items)))
+  (in-style pfsteps-style (exact "\\case{" (in-math (um title)) "}" items ...)))
+(define-syntax-rule (bc-otherwise items ...)
+  (in-style pfsteps-style (exact `("\\otherwise{}" items ...))))
 
 (define (parblock env title tag items)
   (define par
-    (make-paragraph exact-style
+    (make-paragraph (current-style)
                     (exact `("\\begin{" ,env "}"
                              ,@(if title
                                    `("[" ,title "]")
@@ -198,8 +228,8 @@
   (define blocks
     (map content->block (collapse-content (apply tagit tag items))))
   (define end
-    (make-paragraph exact-style (exact `("\\end{" ,env "}"))))
-  (make-compound-paragraph exact-style
+    (make-paragraph (current-style)  (exact `("\\end{" ,env "}"))))
+  (make-compound-paragraph (current-style)
                            (append (list par) blocks (list end))))
 
 (define (mdef title #:tag [tag #f] . items)
@@ -239,7 +269,7 @@
 
 (define (content->block c)
   (if (content? c)
-      (make-paragraph exact-style c)
+      (make-paragraph (current-style) c)
       c))
 (define (collapse-content items)
   (let recur ([items items]
@@ -253,17 +283,6 @@
           [(content? (car items))
            (recur (cdr items) (cons (car items) current) all)]
           [else (recur (cdr items) '() (cons (car items) (extend)))])))
-
-(define-syntax (for/append stx)
-  (syntax-case stx ()
-    [(_ clauses body1 body ...)
-     (syntax/loc stx (reverse (for/fold/derived stx ([res '()]) clauses
-                                 (let ([app (let () body1 body ...)]) (append (reverse app) res)))))]))
-
-(define (zip-kvs lst)
-  (cond [(empty? lst) '()]
-        [(empty? (rest lst)) (error 'zip-kvs "Expected even number of arguments")]
-        [else (cons (cons (first lst) (second lst)) (zip-kvs (cddr lst)))]))
 
 (define-syntax (sep-rows stx)
   (syntax-case stx ()
