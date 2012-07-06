@@ -26,8 +26,8 @@ bodies, such as @tt{mathpar} (from @tt{mathpartir}) and @tt{lstlisting} (from
 @defthing[default-ops operators/c]{
 
 Default operations for Unicode composing characters. Specifically
-@racket{#\u0302} for @tt{\hat}, @racket{#\u0303} for @tt{\tilde},
-@racket{#\u0307} for @tt{\dot}, and @racket{#\u0338} for @tt{\centernot}
+@racket[#\u0302] for @tt{\hat}, @racket[#\u0303] for @tt{\tilde},
+@racket[#\u0307] for @tt{\dot}, and @racket[#\u0338] for @tt{\centernot}
 (requires @tt{centernot} package).}
 
 @defthing[operator/c contract?]{
@@ -163,7 +163,7 @@ Uses @racket[style-matrix] with all left-aligned colunms.}
 
 Uses @tt{definition} theorem environment (must be declared in style file:
 @tt{\newtheorem{definition}{Definition}}) to give a definition. To use a LaTeX
-label (not a scribble one!), provide an argument to @racket{#:tag}.}
+label (not a scribble one!), provide an argument to @racket[#:tag].}
 
 @deftogether[(
 @defproc[(mthm [title content?]
@@ -307,7 +307,7 @@ For use as the last of the @racket[byCases] items. Instead of saying "Case
 @section{Miscellaneous}
 @(declare-exporting "../utils.rkt")
 
-Random stuff I threw it for papers.
+Random stuff I threw in for papers.
 
 @defproc[(graybox [elm content?]) content?]{
 
