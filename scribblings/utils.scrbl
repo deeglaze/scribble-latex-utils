@@ -11,14 +11,11 @@ This library provides support for an assortment of LaTeX environments,
 particularly for mathematics rendering. Most of these functions/macros render
 LaTeX strings rather than use Scribble's elements to get the same effect. This
 is primarily because brackets are not supported (for rendering tabular
-environments, say). Because of this, scribble must be given an extra style tex
-file that includes the following macro:
-
-@tt{\newcommand{\identity}[1]{#1}}
-
-This macro does lead to some nasty interop with environments that parse their
-bodies, such as @tt{mathpar} (from @tt{mathpartir}) and @tt{lstlisting} (from
-@tt{listings}).
+environments, say). These strings are wrapped in a LaTeX identity macro, and
+lead to some nasty interop with environments that parse their bodies, such as
+@tt{mathpar} (from @tt{mathpartir}) and @tt{lstlisting} (from
+@tt{listings}). Thus this collection of utils supports some of those special
+environments specifically.
 
 @section{Unicode Translation}
 @(declare-exporting "../unmap.rkt")
@@ -229,9 +226,6 @@ and @racket[ntprf] respectively.}
 @section{@tt{listings} utilities}
 @(declare-exporting "../utils.rkt")
 
-Requires including @tt{listings} package and putting @tt{\newbox\mylistings}
-in additional style tex file.
-
 @defproc[(lstlisting [#:math-escape? math-escape? #f]
                      [items content?] ...) content?]{
 
@@ -276,9 +270,6 @@ Provides a subset of possible inputs to the extensive @tt{\lstset} macro. See
 @section{@tt{mathpartir} utilities}
 @(declare-exporting "../utils.rkt")
 
-Requires including @tt{mathpartir} package and putting @tt{\newbox\mymathpar}
-in additional style tex file.
-
 @defform[(mathpar items ...)]{
 
 Renders items in @tt{mathpar} environment. Uses extra trickery with boxes to
@@ -311,6 +302,4 @@ Random stuff I threw in for papers.
 
 @defproc[(graybox [elm content?]) content?]{
 
-Requires @tt{color} package and a file bgcolor.tex with content
-@tt{\newcommand{\BgColor}[1]{\colorbox{lightgray}{#1}}}. Gives @racket[elm] a
-light gray background color.}
+Requires @tt{color} package. Gives @racket[elm] a light gray background color.}

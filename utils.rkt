@@ -7,6 +7,7 @@
          scribble/racket
          scribble/latex-properties
          scheme/string
+         racket/runtime-path
          "unmap.rkt"
          (for-syntax syntax/id-table syntax/parse)
          (only-in scribble/struct make-flow make-omitable-paragraph flow-paragraphs
@@ -40,22 +41,25 @@
  [exact (->* () (#:operators operators/c) #:rest (listof content?) content?)]
  [env (->* (content?) (#:opt (listof (or/c bracket? curlies? parens?)))
            #:rest (listof content?) content?)])
-;; FIXME: Make this path robust.
-(define abs
-  (lambda (s)
-    (build-path "/home/ianj/projects/paper-utils/" s)))
+
+(define-runtime-path id-path "identity.tex")
+(define-runtime-path amsthm-path "amsthm.tex")
+(define-runtime-path pfsteps-path "pfsteps.tex")
+(define-runtime-path listings-path "listings.tex")
+(define-runtime-path mathpar-path "mathpar.tex")
+(define-runtime-path bgcolor-path "bgcolor.tex")
 
 (define exact-style 
-  (make-style "Iidentity" `(exact-chars #;,(make-tex-addition (abs "identity.tex"))
+  (make-style "Iidentity" `(exact-chars ,(make-tex-addition id-path)
                             )))
 (define current-style (make-parameter exact-style))
 
 (define amsthm-style
-  (make-style "Iidentity" `(exact-chars #;,(make-tex-addition (abs "amsthm.tex"))
+  (make-style "Iidentity" `(exact-chars ,(make-tex-addition amsthm-path)
                             )))
-(define listings-addition (make-tex-addition (abs "listings.tex")))
+(define listings-addition (make-tex-addition listings-path))
 (define pfsteps-style
-  (make-style "Iidentity" `(exact-chars #;,(make-tex-addition (abs "pfsteps.tex"))
+  (make-style "Iidentity" `(exact-chars ,(make-tex-addition pfsteps-path)
                             )))
 
 (define (exact #:operators [operators default-ops] . items)
@@ -82,7 +86,7 @@
         [else items]))
 
 (define bg-color-style
-  (make-style "BgColor" (list (make-tex-addition "bgcolor.tex"))))
+  (make-style "BgColor" (list (make-tex-addition bgcolor-path))))
 (define (graybox elm) (make-element bg-color-style elm))
 
 (define (interpret-option option)
@@ -101,7 +105,7 @@
 
 (define-syntax-rule (mathpar items ...)
   (list (make-element (make-style "setbox\\mymathpar=\\vbox" 
-                                  `(exact-chars #;,(make-tex-addition (abs "mathpar.tex"))
+                                  `(exact-chars ,(make-tex-addition mathpar-path)
                                     ))
                       (list "\n"
                             "\\begin{mathpar}"
@@ -233,36 +237,37 @@
                            (append (list par) blocks (list end))))
 
 (define (mdef title #:tag [tag #f] . items)
-  (tenv "definition" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "definition" title (apply tagit tag items))))
 (define (mthm title #:tag [tag #f] . items) 
-  (tenv "theorem" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "theorem" title (apply tagit tag items))))
 (define (mlem title #:tag [tag #f] . items)
-  (tenv "lemma" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "lemma" title (apply tagit tag items))))
 (define (mprop title #:tag [tag #f] . items)
-  (tenv "property" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "property" title (apply tagit tag items))))
 (define (mcor title  #:tag [tag #f]. items) 
-  (tenv "corollary" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "corollary" title (apply tagit tag items))))
 (define (mnotation title #:tag [tag #f] . items) 
-  (tenv "notation" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "notation" title (apply tagit tag items))))
 (define (unthm title #:tag [tag #f] . items) 
-  (tenv "untheorem" title (apply tagit tag items)))
+  (in-style amsthm-style (tenv "untheorem" title (apply tagit tag items))))
 
-(define (tprf title . items) (tenv "proof" title items))
+(define (tprf title . items) 
+  (in-style amsthm-style (tenv "proof" title items)))
 
 (define (parthm title #:tag [tag #f] . items)
-  (parblock "theorem" title tag items))
+  (in-style amsthm-style (parblock "theorem" title tag items)))
 (define (parlem title #:tag [tag #f] . items)
-  (parblock "lemma" title tag items))
+  (in-style amsthm-style (parblock "lemma" title tag items)))
 (define (parunthm title #:tag [tag #f] . items)
-  (parblock "untheorem" title tag items))
+  (in-style amsthm-style (parblock "untheorem" title tag items)))
 (define (parprf #:tag [tag #f] . items)
-  (parblock "proof" #f tag items))
+  (in-style amsthm-style (parblock "proof" #f tag items)))
 (define (parprop title #:tag [tag #f] . items)
-  (parblock "property" title tag items))
+  (in-style amsthm-style (parblock "property" title tag items)))
 
-(define (ntthm . items) (apply env "theorem" items))
-(define (ntlem . items) (apply env "lemma" items))
-(define (ntprf . items) (apply env "proof" items))
+(define (ntthm . items) (in-style amsthm-style (apply env "theorem" items)))
+(define (ntlem . items) (in-style amsthm-style (apply env "lemma" items)))
+(define (ntprf . items) (in-style amsthm-style (apply env "proof" items)))
 ;; align* is a special LaTeX environment that puts its body directly in a math mode context.
 (define-syntax-rule (envalign* items ...)
   (in-math (env "align*" items ...)))
